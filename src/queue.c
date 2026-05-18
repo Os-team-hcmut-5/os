@@ -11,6 +11,7 @@ int empty(struct queue_t *q)
 
 void enqueue(struct queue_t *q, struct pcb_t *proc)
 {
+<<<<<<< HEAD
         if (q == NULL || proc == NULL)
                 return;
 
@@ -19,10 +20,15 @@ void enqueue(struct queue_t *q, struct pcb_t *proc)
 
         q->proc[q->size] = proc;
         q->size++;
+=======
+        /* TODO: put a new process to queue [q] */
+;
+>>>>>>> af7380308d78b23da71527644ea92154808d7398
 }
 
 struct pcb_t *dequeue(struct queue_t *q)
 {
+<<<<<<< HEAD
         /*
          * Lấy process ở đầu queue (FIFO / index 0).
          *
@@ -47,10 +53,18 @@ struct pcb_t *dequeue(struct queue_t *q)
         q->proc[q->size] = NULL;
 
         return proc;
+=======
+        /* TODO: return a pcb whose prioprity is the highest
+         * in the queue [q] and remember to remove it from q
+         * */
+
+		return NULL;
+>>>>>>> af7380308d78b23da71527644ea92154808d7398
 }
 
 struct pcb_t *purgequeue(struct queue_t *q, struct pcb_t *proc)
 {
+<<<<<<< HEAD
         int i;
         int found;
 
@@ -76,4 +90,9 @@ struct pcb_t *purgequeue(struct queue_t *q, struct pcb_t *proc)
         q->proc[q->size] = NULL;
 
         return proc;
+=======
+        /* TODO: remove a specific item from queue
+         * */
+        return NULL;
+>>>>>>> af7380308d78b23da71527644ea92154808d7398
 }
