@@ -77,6 +77,7 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, ad
   newrg = malloc(sizeof(struct vm_rg_struct));
   newrg->rg_start = cur_vma->sbrk;
   newrg->rg_end = newrg->rg_start + size;
+  newrg->rg_next = NULL;
   /* END TODO */
 
   return newrg;
@@ -156,6 +157,27 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, addr_t inc_sz)
 //  if (vm_map_ram(caller, area->rg_start, area->rg_end, 
 //                   old_end, incnumpage , newrg) < 0)
 //    return -1; /* Map the memory to MEMRAM */
+
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->krnl->mm, vmaid);
+  if (cur_vma == NULL)
+    return -1;
+
+  addr_t old_sbrk = cur_vma->sbrk;
+  addr_t new_sbrk = old_sbrk + inc_sz;
+
+  /* CẬP NHẬT: Gọi hàm kiểm tra Overlap để bảo vệ vùng nhớ */
+  if (validate_overlap_vm_area(caller, vmaid, old_sbrk, new_sbrk) < 0)
+    return -1; /* Overlap and failed allocation */
+
+  /* Trong mô hình 64-bit hoặc thiết kế cấp phát lười (lazy allocation),
+   * ta chỉ cần nâng con trỏ sbrk lên. Việc map frame vật lý thực sự 
+   * sẽ do hệ thống phân trang (vmap_pgd_memset hoặc page fault) đảm nhận. */
+  cur_vma->sbrk = new_sbrk;
+  
+  /* Cập nhật luôn vm_end nếu sbrk vượt qua giới hạn hiện tại của vùng */
+  if (cur_vma->sbrk > cur_vma->vm_end) {
+      cur_vma->vm_end = cur_vma->sbrk;
+  }
 
   return 0;
 }

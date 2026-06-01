@@ -14,7 +14,7 @@
  * Memory physical module mm/mm-memphy.c
  */
 
-#include "mm.h"
+#include "../include/mm.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -170,9 +170,28 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  /*TODO dump memphy contnt mp->storage
-   *     for tracing the memory content
-   */
+   if (mp == NULL || mp->storage == NULL) {
+      printf("MEMPHY Error: Device is uninitialized or null.\n");
+      return -1;
+   }
+
+   printf("\n============= DUMPING PHYSICAL MEMORY =============\n");
+   printf("Memory Size: %d bytes | Mode: %s\n", mp->maxsz, mp->rdmflg ? "Random Access (RAM)" : "Sequential (SWAP)");
+   int has_data = 0;
+
+   /* Chỉ in ra những vùng nhớ có dữ liệu (khác 0) để tránh trôi log */
+   for (int i = 0; i < mp->maxsz; i++) {
+      if (mp->storage[i] != 0) {
+         printf(" - Address [0x%08x] : Data = 0x%02x\n", i, mp->storage[i]);
+         has_data = 1;
+      }
+   }
+
+   if (!has_data) {
+      printf(" - Memory is completely empty (all zeroes).\n");
+   }
+   printf("===================================================\n\n");
+
    return 0;
 }
 
@@ -207,5 +226,4 @@ int init_memphy(struct memphy_struct *mp, addr_t max_size, int randomflg)
 
    return 0;
 }
-
 // #endif
