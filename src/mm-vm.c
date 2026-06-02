@@ -165,13 +165,12 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, addr_t inc_sz)
   addr_t old_sbrk = cur_vma->sbrk;
   addr_t new_sbrk = old_sbrk + inc_sz;
 
-  /* CẬP NHẬT: Gọi hàm kiểm tra Overlap để bảo vệ vùng nhớ */
+  /*Gọi hàm kiểm tra Overlap để bảo vệ vùng nhớ */
   if (validate_overlap_vm_area(caller, vmaid, old_sbrk, new_sbrk) < 0)
     return -1; /* Overlap and failed allocation */
 
-  /* Trong mô hình 64-bit hoặc thiết kế cấp phát lười (lazy allocation),
-   * ta chỉ cần nâng con trỏ sbrk lên. Việc map frame vật lý thực sự 
-   * sẽ do hệ thống phân trang (vmap_pgd_memset hoặc page fault) đảm nhận. */
+  /*chỉ cần nâng con trỏ sbrk lên. Việc map frame vật lý thực sự 
+   * sẽ do hệ thống phân trang. */
   cur_vma->sbrk = new_sbrk;
   
   /* Cập nhật luôn vm_end nếu sbrk vượt qua giới hạn hiện tại của vùng */
