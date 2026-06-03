@@ -524,8 +524,7 @@ int print_list_pgn(struct pgn_t *ip)
 
 int print_pgtbl(struct pcb_t *caller, addr_t start, addr_t end)
 {
-  printf("print_pgtbl:\n");
-  printf(" PDG=%lx P4g=%lx PUD=%lx PMD=%lx\n", 
+  printf("print_pgtbl:\n PDG=%lx P4g=%lx PUD=%lx PMD=%lx\n", 
          (unsigned long)caller->krnl->mm->pgd,
          (unsigned long)caller->krnl->mm->p4d,
          (unsigned long)caller->krnl->mm->pud,

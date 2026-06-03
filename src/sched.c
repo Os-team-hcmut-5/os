@@ -71,51 +71,59 @@ static void reset_slot(void) {
  * We implement stateful here using transition technique
  * State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
-struct pcb_t *get_mlq_proc(void)
-{
-    struct pcb_t *proc = NULL;
-    int i;
-    int selected;
+struct pcb_t * get_mlq_proc(void) {
+    struct pcb_t * proc = NULL;
 
     pthread_mutex_lock(&queue_lock);
 
-retry:
-    selected = -1;
-    /* Tìm hàng đợi ưu tiên cao nhất, không rỗng và còn slot */
-    for (i = 0; i < MAX_PRIO; i++) {
-        if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
-            selected = i;
+    uint32_t prio;
+    int found = 0;
+
+    // Bước 1: Tìm tiến trình ở hàng đợi CÓ THỂ CHẠY (không rỗng VÀ vẫn còn slot)
+    for (prio = 0; prio < MAX_PRIO; ++prio) {
+        if (!empty(&mlq_ready_queue[prio]) && slot[prio] > 0) {
+            proc = dequeue(&mlq_ready_queue[prio]);
+            --slot[prio];
+            found = 1;
             break;
         }
     }
 
-    /* Nếu không tìm thấy queue nào hợp lệ */
-    if (selected == -1) {
-        if (all_slots_empty()) {
-            /* Nếu hệ thống trống rỗng hoàn toàn */
-            if (queue_empty() == 1) {
-                pthread_mutex_unlock(&queue_lock);
-                return NULL;
+    // Bước 2: Nếu không tìm thấy tiến trình nào do TẤT CẢ các hàng đợi đều hết slot,
+    // nhưng vẫn CÒN tiến trình đang chờ -> Cấp lại slot cho vòng mới (reset epoch)
+    if (!found) {
+        int has_process = 0;
+        // Kiểm tra xem thực sự còn tiến trình nào không
+        for (prio = 0; prio < MAX_PRIO; ++prio) {
+            if (!empty(&mlq_ready_queue[prio])) {
+                has_process = 1;
+                break;
             }
-            /* Nếu có process nhưng hết slot -> Reset slot và tìm lại */
-            reset_slot();
-            goto retry;
-        } else {
-            pthread_mutex_unlock(&queue_lock);
-            return NULL;
+        }
+
+        if (has_process) {
+            // Nạp lại slot cho TOÀN BỘ các hàng đợi
+            for (prio = 0; prio < MAX_PRIO; ++prio) {
+                slot[prio] = MAX_PRIO - prio;
+            }
+            
+            // Lấy ra tiến trình đầu tiên ở hàng đợi cao nhất sau khi đã reset slot
+            for (prio = 0; prio < MAX_PRIO; ++prio) {
+                if (!empty(&mlq_ready_queue[prio])) {
+                    proc = dequeue(&mlq_ready_queue[prio]);
+                    --slot[prio];
+                    break;
+                }
+            }
         }
     }
 
-    /* Lấy process ra khỏi queue đã chọn */
-    proc = dequeue(&mlq_ready_queue[selected]);
-
-    if (proc != NULL) {
-        slot[selected]--;             /* Trừ ngân sách slot của queue này */
-        enqueue(&running_list, proc); /* Đưa vào danh sách đang chạy */
-    }
-
-    pthread_mutex_unlock(&queue_lock);
-    return proc;
+    if (proc != NULL)
+        enqueue(&running_list, proc);
+        
+    pthread_mutex_unlock(&queue_lock); // Đừng quên mở khoá Mutex!
+    
+    return proc;    
 }
 
 void put_mlq_proc(struct pcb_t *proc)

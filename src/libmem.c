@@ -182,6 +182,7 @@ int liballoc(struct pcb_t *proc, addr_t size, uint32_t reg_index)
   {
     return -1;
   }
+  printf("%s:%d\n",__func__,__LINE__);
 #ifdef IODUMP
   /*  dump IO content (if needed) */
 #ifdef PAGETBL_DUMP
