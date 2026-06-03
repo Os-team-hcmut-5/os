@@ -26,26 +26,23 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
 {
    int memop = regs->a1;
    BYTE value;
+    
+   struct pcb_t *caller = NULL;
+   struct queue_t *running_list = krnl->running_list;
    
-   /* TODO THIS DUMMY CREATE EMPTY PROC TO AVOID COMPILER NOTIFY 
-    *      need to be eliminated
-	*/
-   struct pcb_t *caller = malloc(sizeof(struct pcb_t));
-   caller->krnl = malloc(sizeof(struct krnl_t));
+   if (running_list != NULL) {
+        for (int i = 0; i < running_list->size; i++) {
+           if (running_list->proc[i] != NULL && running_list->proc[i]->pid == pid) {
+               caller = running_list->proc[i];
+               break;
+           }
+       }
+   }
 
-   /*
-    * @bksysnet: Please note in the dual spacing design
-    *            syscall implementations are in kernel space.
-    */
-
-   /* TODO: Traverse proclist to terminate the proc
-    *       stcmp to check the process match proc_name
-    */
-//	struct queue_t *running_list = krnl->running_list;
-
-    /* TODO Maching and marking the process */
-    /* user process are not allowed to access directly pcb in kernel space of syscall */
-    //....
+   if (caller == NULL) {
+        printf("Error: Process with PID %d not found\n", pid);
+        return -1;
+   }
 	
    switch (memop) {
    case SYSMEM_MAP_OP:
@@ -57,10 +54,10 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
             break;
    case SYSMEM_SWP_OP:
             if (regs->a4 == 1) {
-                /* Swap IN (Disk -> RAM): Bypass the hardcoded wrapper and run the engine backwards */
+                /* Swap IN (Disk -> RAM) */
                 __swap_cp_page(caller->krnl->active_mswp, regs->a2, caller->krnl->mram, regs->a3);
             } else {
-                /* Swap OUT (RAM -> Disk): Use your normal function */
+                /* Swap OUT (RAM -> Disk) */
                 __mm_swap_page(caller, regs->a2, regs->a3);
             }
             break;
@@ -78,5 +75,4 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
    
    return 0;
 }
-
 
