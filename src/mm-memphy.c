@@ -26,7 +26,7 @@
  */
 int MEMPHY_mv_csr(struct memphy_struct *mp, addr_t offset)
 {
-   int numstep = 0;
+   addr_t numstep = 0;
 
    mp->cursor = 0;
    while (numstep < offset && numstep < mp->maxsz)
@@ -50,7 +50,7 @@ int MEMPHY_seq_read(struct memphy_struct *mp, addr_t addr, BYTE *value)
    if (mp == NULL)
       return -1;
 
-   if (!mp->rdmflg)
+   if (mp->rdmflg)
       return -1; /* Not compatible mode for sequential read */
 
    MEMPHY_mv_csr(mp, addr);
@@ -90,7 +90,7 @@ int MEMPHY_seq_write(struct memphy_struct *mp, addr_t addr, BYTE value)
    if (mp == NULL)
       return -1;
 
-   if (!mp->rdmflg)
+   if (mp->rdmflg)
       return -1; /* Not compatible mode for sequential read */
 
    MEMPHY_mv_csr(mp, addr);
@@ -125,9 +125,9 @@ int MEMPHY_write(struct memphy_struct *mp, addr_t addr, BYTE data)
 int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 {
    /* This setting come with fixed constant PAGESZ */
-   int numfp = mp->maxsz / pagesz;
+   addr_t numfp = mp->maxsz / pagesz;
    struct framephy_struct *newfst, *fst;
-   int iter = 0;
+   addr_t iter = 0;
 
    if (numfp <= 0)
       return -1;

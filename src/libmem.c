@@ -259,9 +259,10 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       tgtfpn = vicfpn;
       /*  Initialize the target frame storing our variable */
       struct sc_regs regs;
-      regs.a1 = 1;
+      regs.a1 = SYSMEM_SWP_OP;
       regs.a2 = vicfpn;
       regs.a3 = swpfpn;
+      regs.a4 = 0;              /* SECRET FLAG: 0 means Swap Out */
       _syscall(caller->krnl, caller->pid, 17, &regs);
 
       pte_set_swap(&caller->krnl->mm->pgd[vicpgn], 0, swpfpn);
@@ -271,9 +272,10 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       addr_t old_swpfpn = PAGING_SWP(pte);
       /* Implement swap frame from MEMRAM to MEMSWP and vice versa*/
       struct sc_regs regs;
-      regs.a1 = 1;
+      regs.a1 = SYSMEM_SWP_OP;
       regs.a2 = old_swpfpn;
       regs.a3 = tgtfpn;
+      regs.a4 = 1;              /* SECRET FLAG: 1 means Swap In */
       _syscall(caller->krnl, caller->pid, 17, &regs);
       MEMPHY_put_freefp(caller->krnl->active_mswp, old_swpfpn);
     }
