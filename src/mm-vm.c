@@ -16,9 +16,15 @@
 
 #include "string.h"
 #include "mm.h"
+
+#ifdef MM64
+#include "mm64.h"
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+
 
 /*get_vma_by_num - get vm area by numID
  *@mm: memory region
@@ -59,7 +65,7 @@ int __mm_swap_page(struct pcb_t *caller, addr_t vicfpn , addr_t swpfpn)
  *@vmaend: vma end
  *
  */
-struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, addr_t size, addr_t alignedsz)
+struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, int size, addr_t alignedsz)
 {
   struct vm_rg_struct * newrg;
   /* retrive current vma to obtain newrg*/

@@ -61,6 +61,14 @@
 #define PAGING64_ADDR_P4D_MASK  GENMASK64(PAGING64_ADDR_P4D_HIBIT,PAGING64_ADDR_P4D_LOBIT)
 #define PAGING64_ADDR_PGD_MASK  GENMASK64(PAGING64_ADDR_PGD_HIBIT,PAGING64_ADDR_PGD_LOBIT)
 
-
+/* ====================================================================
+ * Memory Mapping API
+ * ==================================================================== */
+addr_t vm_map_ram(struct pcb_t *caller, addr_t astart, addr_t aend, addr_t mapstart, int incpgnum, struct vm_rg_struct *ret_rg);
+addr_t alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst);
+int pte_set_fpn(struct pcb_t *caller, addr_t pgn, addr_t fpn);
+uint32_t pte_get_entry(struct pcb_t *caller, addr_t pgn);
+int pte_set_entry(struct pcb_t *caller, addr_t pgn, uint32_t pte_val);
+int vmap_pgd_memset(struct pcb_t *caller, addr_t addr, int pgnum);
 
 #endif

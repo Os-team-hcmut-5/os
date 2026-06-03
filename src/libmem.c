@@ -261,7 +261,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       regs.a4 = 0;              /* SECRET FLAG: 0 means Swap Out */
       _syscall(caller->krnl, caller->pid, 17, &regs);
 
-      pte_set_swap(&caller->krnl->mm->pgd[vicpgn], 0, swpfpn);
+      pte_set_swap(caller, vicpgn, 0, swpfpn);
     }
     if (pte != 0)
     {
@@ -276,7 +276,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       MEMPHY_put_freefp(caller->krnl->active_mswp, old_swpfpn);
     }
     /* Update page table */
-    pte_set_fpn(&caller->krnl->mm->pgd[pgn], tgtfpn);
+    pte_set_fpn(caller, pgn, tgtfpn);
     enlist_pgn_node(&caller->krnl->mm->fifo_pgn, pgn);
   }
   *fpn = PAGING_FPN(pte_get_entry(caller, pgn));
@@ -340,6 +340,7 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
    *  MEMPHY WRITE with SYSMEM_IO_WRITE 
    * SYSCALL 17 sys_memmap
   */
+  int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
   struct sc_regs regs;
   regs.a1 = SYSMEM_IO_WRITE; /* The command: Write to IO */
   regs.a2 = phyaddr;         /* The destination: Exact physical address in RAM */
@@ -486,11 +487,7 @@ int libkmem_malloc(struct pcb_t * caller, uint32_t size, uint32_t reg_index)
 addr_t __kmalloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *alloc_addr)
 {
   /* provide OS kernel memory allocation
-   *       update krnl_pgd for OS kernel level management */
-
-  //struct krnl_t *krnl = caller->krnl;
-  //krnl->symrgtbl...
-  //krnl->krnl_pgd ...
+   * update krnl_pgd for OS kernel level management */
   pthread_mutex_lock(&mmvm_lock);
   struct krnl_t *krnl = caller->krnl;
   addr_t tgtfpn;
@@ -506,24 +503,12 @@ addr_t __kmalloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t 
   SETBIT(pte, PAGING_PTE_PRESENT_MASK);
   SETVAL(pte, tgtfpn, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT);
 
-#ifdef MM64
-  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
-  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
+  krnl->krnl_pgd[pgn] = pte;
   
-  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
-  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
-  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
-  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
-  
-  pt_tbl[pt] = pte; /* Save the 32-bit PTE at the very bottom leaf */
-#else
-  krnl->krnl_pgd[pgn] = pte; /* 32-bit flat array fallback */
-#endif
-  
-  krnl->symrgtbl[rgid].rg_start = pgn * PAGING_PAGESZ; 
-  krnl->symrgtbl[rgid].rg_end = (pgn * PAGING_PAGESZ) + size;
+  krnl->mm->symrgtbl[rgid].rg_start = pgn * PAGING_PAGESZ; 
+  krnl->mm->symrgtbl[rgid].rg_end = (pgn * PAGING_PAGESZ) + size;
 
-  *alloc_addr = krnl->symrgtbl[rgid].rg_start;
+  *alloc_addr = krnl->mm->symrgtbl[rgid].rg_start;
 
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
@@ -540,14 +525,14 @@ int libkmem_cache_pool_create(struct pcb_t *caller, uint32_t size, uint32_t alig
   /* provide OS level management */
 
   //struct krnl_t *krnl = caller->krnl;
-  //krnl->kcpooltbl...
+  //krnl->mm->kcpooltbl...
   //krnl->krnl_pgd ...
   pthread_mutex_lock(&mmvm_lock);
   
   struct krnl_t *krnl = caller->krnl;
-  krnl->kcpooltbl[cache_pool_id].pool_sz = size;
-  krnl->kcpooltbl[cache_pool_id].slot_sz = align;
-  krnl->kcpooltbl[cache_pool_id].free_head = 0;
+  krnl->mm->kcpooltbl[cache_pool_id].size = size;
+  krnl->mm->kcpooltbl[cache_pool_id].align = align;
+  krnl->mm->kcpooltbl[cache_pool_id].storage = 0;
 
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
@@ -585,35 +570,34 @@ addr_t __kmem_cache_alloc(struct pcb_t *caller, int vmaid, int rgid, int cache_p
   /* provide OS level management */
 
   //struct krnl_t *krnl = caller->krnl;
-  //krnl->symrgtbl...
-  //krnl->kcpooltbl...
+  //krnl->mm->symrgtbl...
+  //krnl->mm->kcpooltbl...
   //krnl->krnl_pgd ...
 
   pthread_mutex_lock(&mmvm_lock);
   
   struct krnl_t *krnl = caller->krnl;
 
-  addr_t slot_size = krnl->kcpooltbl[cache_pool_id].slot_sz;
-  addr_t current_head = krnl->kcpooltbl[cache_pool_id].free_head;
-  
-  if (current_head + slot_size > krnl->kcpooltbl[cache_pool_id].pool_sz) {
+  addr_t slot_size = krnl->mm->kcpooltbl[cache_pool_id].align;
+  addr_t current_head = krnl->mm->kcpooltbl[cache_pool_id].storage;
+
+  if (current_head + slot_size > krnl->mm->kcpooltbl[cache_pool_id].size) {
     pthread_mutex_unlock(&mmvm_lock);
     return -1; 
   }
 
   /* Map this specific slot to the requested Symbol Region ID */
-  krnl->symrgtbl[rgid].rg_start = current_head;
-  krnl->symrgtbl[rgid].rg_end = current_head + slot_size;
+  krnl->mm->symrgtbl[rgid].rg_start = current_head;
+  krnl->mm->symrgtbl[rgid].rg_end = current_head + slot_size;
 
   /* Update the pool to point to the next available slot */
-  krnl->kcpooltbl[cache_pool_id].free_head += slot_size;
+  krnl->mm->kcpooltbl[cache_pool_id].storage += slot_size;
 
   /* Hand the address back */
-  *alloc_addr = krnl->symrgtbl[rgid].rg_start;
+  *alloc_addr = krnl->mm->symrgtbl[rgid].rg_start;
 
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
-
 }
 
 
@@ -680,10 +664,10 @@ int libkmem_copy_to_user(struct pcb_t *caller, uint32_t source, uint32_t destina
  */
 int __read_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, BYTE *data)
 {
-  /* provide OS memory operator for kernel memory region */
-  //krnl->krnl_pgd ... or krnl->pgd ... based on kmem implementation strategy
+ /* provide OS memory operator for kernel memory region */
   struct krnl_t *krnl = caller->krnl;
-  struct vm_rg_struct *currg = &krnl->symrgtbl[rgid];
+  
+  struct vm_rg_struct *currg = &krnl->mm->symrgtbl[rgid];
 
   if (currg == NULL || currg->rg_start + offset >= currg->rg_end) return -1;
 
@@ -691,19 +675,8 @@ int __read_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, 
   addr_t pgn = PAGING_PGN(v_addr);
   addr_t off = PAGING_OFFST(v_addr);
 
-#ifdef MM64
-  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
-  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
-  
-  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
-  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
-  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
-  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
-  
-  uint32_t pte = (uint32_t)pt_tbl[pt];
-#else
+
   uint32_t pte = krnl->krnl_pgd[pgn];
-#endif
 
   if (!PAGING_PAGE_PRESENT(pte)) return -1; 
 
@@ -723,7 +696,8 @@ int __read_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, 
 int __write_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, BYTE value)
 {
   struct krnl_t *krnl = caller->krnl;
-  struct vm_rg_struct *currg = &krnl->symrgtbl[rgid];
+  
+  struct vm_rg_struct *currg = &krnl->mm->symrgtbl[rgid];
 
   if (currg == NULL || currg->rg_start + offset >= currg->rg_end) return -1;
 
@@ -731,20 +705,7 @@ int __write_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset,
   addr_t pgn = PAGING_PGN(v_addr);
   addr_t off = PAGING_OFFST(v_addr);
 
-  /* ARCHITECTURE FIX: Safely retrieve the 32-bit PTE from the bottom of the tree */
-#ifdef MM64
-  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
-  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
-  
-  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
-  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
-  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
-  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
-  
-  uint32_t pte = (uint32_t)pt_tbl[pt];
-#else
   uint32_t pte = krnl->krnl_pgd[pgn];
-#endif
 
   if (!PAGING_PAGE_PRESENT(pte)) return -1; 
 
@@ -876,7 +837,7 @@ int find_victim_page(struct mm_struct *mm, addr_t *retpgn)
  *@size: allocated size
  *
  */
-int get_free_vmrg_area(struct pcb_t *caller, int vmaid, addr_t size, struct vm_rg_struct *newrg)
+int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_struct *newrg)
 {
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->krnl->mm, vmaid);
   struct vm_rg_struct *rgit = cur_vma->vm_freerg_list;

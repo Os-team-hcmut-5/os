@@ -177,4 +177,16 @@ int print_list_vma(struct vm_area_struct *rg);
 
 int print_list_pgn(struct pgn_t *ip);
 int print_pgtbl(struct pcb_t *ip, addr_t start, addr_t end);
+
+/* ====================================================================
+ * Memory Mapping API
+ * ==================================================================== */
+addr_t vm_map_ram(struct pcb_t *caller, addr_t astart, addr_t aend, addr_t mapstart, int incpgnum, struct vm_rg_struct *ret_rg);
+addr_t alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst);
+int pte_set_fpn(struct pcb_t *caller, addr_t pgn, addr_t fpn);
+uint32_t pte_get_entry(struct pcb_t *caller, addr_t pgn);
+int pte_set_entry(struct pcb_t *caller, addr_t pgn, uint32_t pte_val);
+int vmap_pgd_memset(struct pcb_t *caller, addr_t addr, int pgnum);
+
+
 #endif
