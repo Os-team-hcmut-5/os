@@ -56,7 +56,13 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
             inc_vma_limit(caller, regs->a2, regs->a3);
             break;
    case SYSMEM_SWP_OP:
-            __mm_swap_page(caller, regs->a2, regs->a3);
+            if (regs->a4 == 1) {
+                /* Swap IN (Disk -> RAM): Bypass the hardcoded wrapper and run the engine backwards */
+                __swap_cp_page(caller->krnl->active_mswp, regs->a2, caller->krnl->mram, regs->a3);
+            } else {
+                /* Swap OUT (RAM -> Disk): Use your normal function */
+                __mm_swap_page(caller, regs->a2, regs->a3);
+            }
             break;
    case SYSMEM_IO_READ:
             MEMPHY_read(caller->krnl->mram, regs->a2, &value);
