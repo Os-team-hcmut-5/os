@@ -60,7 +60,7 @@ struct pcb_t * get_mlq_proc(void) {
 	struct pcb_t * proc = NULL;
 
 	pthread_mutex_lock(&queue_lock);
-	/*TODO: get a process from PRIORITY [ready_queue].
+	/*get a process from PRIORITY [ready_queue].
 	 *      It worth to protect by a mechanism.
 	 * */
     uint32_t prio;
@@ -86,7 +86,7 @@ void put_mlq_proc(struct pcb_t * proc) {
 	proc->krnl->mlq_ready_queue = mlq_ready_queue;
 	proc->krnl->running_list = &running_list;
 
-	/* TODO: put running proc to running_list 
+	/* put running proc to running_list 
 	 *       It worth to protect by a mechanism.
 	 * 
 	 */
@@ -102,7 +102,7 @@ void add_mlq_proc(struct pcb_t * proc) {
 	proc->krnl->mlq_ready_queue = mlq_ready_queue;
 	proc->krnl->running_list = &running_list;
 
-	/* TODO: put running proc to running_list
+	/* put running proc to running_list
 	 *       It worth to protect by a mechanism.
 	 * 
 	 */
@@ -130,7 +130,7 @@ struct pcb_t * get_proc(void) {
 	struct pcb_t * proc = NULL;
 
 	pthread_mutex_lock(&queue_lock);
-	/*TODO: get a process from [ready_queue].
+	/*get a process from [ready_queue].
 	 *       It worth to protect by a mechanism.
 	 * 
 	 */
@@ -152,7 +152,7 @@ void put_proc(struct pcb_t * proc) {
 	proc->krnl->ready_queue = &ready_queue;
 	proc->krnl->running_list = &running_list;
 
-	/* TODO: put running proc to running_list 
+	/* put running proc to running_list 
 	 *       It worth to protect by a mechanism.
 	 * 
 	 */
@@ -166,7 +166,7 @@ void add_proc(struct pcb_t * proc) {
 	proc->krnl->ready_queue = &ready_queue;
 	proc->krnl->running_list = &running_list;
 
-	/* TODO: put running proc to running_list 
+	/* put running proc to running_list 
 	 *       It worth to protect by a mechanism.
 	 * 
 	 */

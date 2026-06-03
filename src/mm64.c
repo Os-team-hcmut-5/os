@@ -77,7 +77,7 @@ int get_pd_from_address(addr_t addr, addr_t* pgd, addr_t* p4d, addr_t* pud, addr
 	*pmd = (addr&PAGING64_ADDR_PMD_MASK)>>PAGING64_ADDR_PMD_LOBIT;
 	*pt = (addr&PAGING64_ADDR_PT_MASK)>>PAGING64_ADDR_PT_LOBIT;
 
-	/* TODO: implement the page direactories mapping */
+	/*  implement the page direactories mapping */
 
 	return 0;
 }
@@ -120,7 +120,7 @@ struct krnl_t *krnl = caller->krnl;
   // pte = malloc(sizeof(addr_t));
 #ifdef MM64	
   /* Get value from the system */
-  /* TODO Perform multi-level page mapping */
+  /* Perform multi-level page mapping */
   get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
   //... krnl->mm->pgd
   //... krnl->mm->pt
@@ -188,7 +188,7 @@ struct krnl_t *krnl = caller->krnl;
   // pte = malloc(sizeof(addr_t));
 #ifdef MM64	
   /* Get value from the system */
-  /* TODO Perform multi-level page mapping */
+  /* Perform multi-level page mapping */
   
   get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
   //... krnl->mm->pgd
@@ -252,7 +252,7 @@ struct krnl_t *krnl = caller->krnl;
   addr_t pmd=0;
   addr_t	pt=0;
 #ifdef MM64
-  /* TODO Perform multi-level page mapping */
+  /* Perform multi-level page mapping */
   get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
   //... krnl->mm->pgd
   //... krnl->mm->pt
@@ -341,7 +341,7 @@ int vmap_pgd_memset(struct pcb_t *caller,           // process call
   //int pgit = 0;
   //uint64_t pattern = 0xdeadbeef;
 
-  /* TODO memset the page table with given pattern
+  /*  memset the page table with given pattern
    */
 
   int pgit = 0;
@@ -377,13 +377,13 @@ struct framephy_struct *fpit;
 int pgit = 0;
 addr_t pgn;
 
-  /* TODO: update the rg_end and rg_start of ret_rg 
+  /* update the rg_end and rg_start of ret_rg 
   //ret_rg->rg_end =  ....
   //ret_rg->rg_start = ...
   //ret_rg->vmaid = ...
   */
 
-  /* TODO map range of frame to address space
+  /*  map range of frame to address space
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->krnl->mm->pgd,
    *                    caller->krnl->mm->pud...
@@ -435,7 +435,7 @@ addr_t alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_st
   //int pgit;
   //struct framephy_struct *newfp_str = NULL;
 
-  /* TODO: allocate the page 
+  /* allocate the page 
   //caller-> ...
   //frm_lst-> ...
   */
@@ -444,19 +444,19 @@ addr_t alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_st
 /*
   for (pgit = 0; pgit < req_pgnum; pgit++)
   {
-    // TODO: allocate the page 
+    // allocate the page 
     if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
     {
       newfp_str->fpn = fpn;
     }
     else
-    { // TODO: ERROR CODE of obtaining somes but not enough frames
+    { // ERROR CODE of obtaining somes but not enough frames
     }
   }
 */
 
 
-  /* End TODO */
+  /* End  */
 addr_t fpn;
   int pgit;
   struct framephy_struct *newfp_str = NULL;
@@ -593,7 +593,7 @@ if (vma0 == NULL) return -1;
   vma0->vm_freerg_list = NULL;
   enlist_vm_rg_node(&vma0->vm_freerg_list, first_rg);
 
-  /* TODO update VMA0 next */
+  /*  update VMA0 next */
   // vma0->next = ...
 
   /* Point vma owner backward */

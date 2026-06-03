@@ -387,7 +387,7 @@ printf("%s:%d\n",__func__,__LINE__);
     *destination = data;
 
 #ifdef IODUMP
-  /* TODO dump IO content (if needed) */
+  /* dump IO content (if needed) */
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); // print max TBL
 #endif
@@ -441,7 +441,7 @@ int libwrite(
     return -1;
   }
 #ifdef IODUMP
-  /* TODO dump IO content (if needed) */
+  /* dump IO content (if needed) */
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); // print max TBL
 #endif
