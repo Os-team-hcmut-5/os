@@ -26,7 +26,7 @@
  */
 int MEMPHY_mv_csr(struct memphy_struct *mp, addr_t offset)
 {
-   int numstep = 0;
+   addr_t numstep = 0;
 
    mp->cursor = 0;
    while (numstep < offset && numstep < mp->maxsz)
@@ -50,7 +50,7 @@ int MEMPHY_seq_read(struct memphy_struct *mp, addr_t addr, BYTE *value)
    if (mp == NULL)
       return -1;
 
-   if (!mp->rdmflg)
+   if (mp->rdmflg)
       return -1; /* Not compatible mode for sequential read */
 
    MEMPHY_mv_csr(mp, addr);
@@ -90,7 +90,7 @@ int MEMPHY_seq_write(struct memphy_struct *mp, addr_t addr, BYTE value)
    if (mp == NULL)
       return -1;
 
-   if (!mp->rdmflg)
+   if (mp->rdmflg)
       return -1; /* Not compatible mode for sequential read */
 
    MEMPHY_mv_csr(mp, addr);
@@ -125,9 +125,9 @@ int MEMPHY_write(struct memphy_struct *mp, addr_t addr, BYTE data)
 int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 {
    /* This setting come with fixed constant PAGESZ */
-   int numfp = mp->maxsz / pagesz;
+   addr_t numfp = mp->maxsz / pagesz;
    struct framephy_struct *newfst, *fst;
-   int iter = 0;
+   addr_t iter = 0;
 
    if (numfp <= 0)
       return -1;
@@ -170,28 +170,39 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
+  /*dump memphy contnt mp->storage
+   *     for tracing the memory content
+   */
    if (mp == NULL || mp->storage == NULL) {
-      printf("MEMPHY Error: Device is uninitialized or null.\n");
+      printf("MEMPHY_dump: Device is NULL or uninitialized.\n");
       return -1;
    }
 
-   printf("\n============= DUMPING PHYSICAL MEMORY =============\n");
-   printf("Memory Size: %d bytes | Mode: %s\n", mp->maxsz, mp->rdmflg ? "Random Access (RAM)" : "Sequential (SWAP)");
+   printf("\n============= MEMPHY DUMP =============\n");
+   printf("Device Size: %d Bytes | Sequential Mode: %s\n", 
+            mp->maxsz, mp->rdmflg ? "NO (Random)" : "YES (Serial)");
+            
    int has_data = 0;
-
-   /* Chỉ in ra những vùng nhớ có dữ liệu (khác 0) để tránh trôi log */
-   for (int i = 0; i < mp->maxsz; i++) {
-      if (mp->storage[i] != 0) {
-         printf(" - Address [0x%08x] : Data = 0x%02x\n", i, mp->storage[i]);
-         has_data = 1;
-      }
+   
+   /* Loop through every byte in the physical device */
+   for (addr_t i = 0; i < mp->maxsz; i++) 
+   {
+         /* Only print addresses that actually contain data to avoid spamming the console */
+         if (mp->storage[i] != 0) {
+            has_data = 1;
+            printf("Physical Address [0x%08lx] : Data [0x%02x] (%c)\n", 
+                  (unsigned long)i, 
+                  mp->storage[i], 
+                  (mp->storage[i] >= 32 && mp->storage[i] <= 126) ? mp->storage[i] : '.');
+         }
    }
 
    if (!has_data) {
-      printf(" - Memory is completely empty (all zeroes).\n");
+         printf(" - Device is completely empty (All bytes are 0x00).\n");
    }
-   printf("===================================================\n\n");
-
+   
+   printf("=======================================\n\n");
+   
    return 0;
 }
 

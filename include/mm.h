@@ -95,7 +95,8 @@
 
 /* Memory range operator */
 /* TODO implement the INCLUDE and OVERLAP checking mechanism */
-#define INCLUDE(x1,x2,y1,y2) (0)
+/*  implement the INCLUDE and OVERLAP checking mechanism */
+#define INCLUDE(x1,x2,y1,y2) (((x1) <= (y1)) && ((x2) >= (y2)))
 #define OVERLAP(x1,x2,y1,y2) (((x1) < (y2)) && ((x2) > (y1)))
 
 /* VM region prototypes */
