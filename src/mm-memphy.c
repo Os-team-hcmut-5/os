@@ -170,9 +170,39 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  /*TODO dump memphy contnt mp->storage
+  /*dump memphy contnt mp->storage
    *     for tracing the memory content
    */
+   if (mp == NULL || mp->storage == NULL) {
+      printf("MEMPHY_dump: Device is NULL or uninitialized.\n");
+      return -1;
+   }
+
+   printf("\n============= MEMPHY DUMP =============\n");
+   printf("Device Size: %d Bytes | Sequential Mode: %s\n", 
+            mp->maxsz, mp->rdmflg ? "NO (Random)" : "YES (Serial)");
+            
+   int has_data = 0;
+   
+   /* Loop through every byte in the physical device */
+   for (addr_t i = 0; i < mp->maxsz; i++) 
+   {
+         /* Only print addresses that actually contain data to avoid spamming the console */
+         if (mp->storage[i] != 0) {
+            has_data = 1;
+            printf("Physical Address [0x%08lx] : Data [0x%02x] (%c)\n", 
+                  (unsigned long)i, 
+                  mp->storage[i], 
+                  (mp->storage[i] >= 32 && mp->storage[i] <= 126) ? mp->storage[i] : '.');
+         }
+   }
+
+   if (!has_data) {
+         printf(" - Device is completely empty (All bytes are 0x00).\n");
+   }
+   
+   printf("=======================================\n\n");
+   
    return 0;
 }
 

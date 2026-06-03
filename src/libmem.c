@@ -226,11 +226,7 @@ printf("%s:%d\n",__func__,__LINE__);
 int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 {
 
-#ifdef MM64
-  uint64_t pte = pte_get_entry(caller, pgn);
-#else
-  uint32_t pte = pte_get_entry(caller, pgn);
-#endif
+  uint32_t pte = pte_get_entry(caller, pgn);  
 
   if (!PAGING_PAGE_PRESENT(pte))
   { /* Page is not online, make it actively living */
@@ -498,16 +494,31 @@ addr_t __kmalloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t 
   pthread_mutex_lock(&mmvm_lock);
   struct krnl_t *krnl = caller->krnl;
   addr_t tgtfpn;
-  // Grab a physical frame directly from RAM.
+
   if (MEMPHY_get_freefp(krnl->mram, &tgtfpn) != 0) 
   {
     pthread_mutex_unlock(&mmvm_lock);
-    return -1; /* Out of physical RAM*/
+    return -1; 
   }
 
-  // Calculate the Virtual Page Number we want to assign
   int pgn = rgid;
-  pte_set_fpn(&krnl->krnl_pgd[pgn], tgtfpn);
+  uint32_t pte = 0;
+  SETBIT(pte, PAGING_PTE_PRESENT_MASK);
+  SETVAL(pte, tgtfpn, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT);
+
+#ifdef MM64
+  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
+  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
+  
+  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
+  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
+  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
+  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
+  
+  pt_tbl[pt] = pte; /* Save the 32-bit PTE at the very bottom leaf */
+#else
+  krnl->krnl_pgd[pgn] = pte; /* 32-bit flat array fallback */
+#endif
   
   krnl->symrgtbl[rgid].rg_start = pgn * PAGING_PAGESZ; 
   krnl->symrgtbl[rgid].rg_end = (pgn * PAGING_PAGESZ) + size;
@@ -674,28 +685,31 @@ int __read_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, 
   struct krnl_t *krnl = caller->krnl;
   struct vm_rg_struct *currg = &krnl->symrgtbl[rgid];
 
-  if (currg == NULL || currg->rg_start + offset >= currg->rg_end) 
-    return -1;
+  if (currg == NULL || currg->rg_start + offset >= currg->rg_end) return -1;
 
   addr_t v_addr = currg->rg_start + offset;
-  
   addr_t pgn = PAGING_PGN(v_addr);
   addr_t off = PAGING_OFFST(v_addr);
 
 #ifdef MM64
-  uint64_t pte = krnl->krnl_pgd[pgn];
+  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
+  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
+  
+  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
+  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
+  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
+  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
+  
+  uint32_t pte = (uint32_t)pt_tbl[pt];
 #else
   uint32_t pte = krnl->krnl_pgd[pgn];
 #endif
 
-  if (!PAGING_PAGE_PRESENT(pte)) 
-    return -1; /* Kernel memory should never be swapped out! */
+  if (!PAGING_PAGE_PRESENT(pte)) return -1; 
 
   addr_t fpn = PAGING_FPN(pte);
   addr_t phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
-  
   MEMPHY_read(krnl->mram, phyaddr, data);
-
   return 0;
 }
 
@@ -711,28 +725,32 @@ int __write_kernel_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset,
   struct krnl_t *krnl = caller->krnl;
   struct vm_rg_struct *currg = &krnl->symrgtbl[rgid];
 
-  if (currg == NULL || currg->rg_start + offset >= currg->rg_end) 
-    return -1;
+  if (currg == NULL || currg->rg_start + offset >= currg->rg_end) return -1;
 
   addr_t v_addr = currg->rg_start + offset;
-  
   addr_t pgn = PAGING_PGN(v_addr);
   addr_t off = PAGING_OFFST(v_addr);
 
+  /* ARCHITECTURE FIX: Safely retrieve the 32-bit PTE from the bottom of the tree */
 #ifdef MM64
-  uint64_t pte = krnl->krnl_pgd[pgn];
+  addr_t pgd=0, p4d=0, pud=0, pmd=0, pt=0;
+  get_pd_from_pagenum(pgn, &pgd, &p4d, &pud, &pmd, &pt);
+  
+  addr_t *p4d_tbl = (addr_t *)krnl->krnl_pgd[pgd];
+  addr_t *pud_tbl = (addr_t *)p4d_tbl[p4d];
+  addr_t *pmd_tbl = (addr_t *)pud_tbl[pud];
+  addr_t *pt_tbl  = (addr_t *)pmd_tbl[pmd];
+  
+  uint32_t pte = (uint32_t)pt_tbl[pt];
 #else
   uint32_t pte = krnl->krnl_pgd[pgn];
 #endif
 
-  if (!PAGING_PAGE_PRESENT(pte)) 
-    return -1; 
+  if (!PAGING_PAGE_PRESENT(pte)) return -1; 
 
   addr_t fpn = PAGING_FPN(pte);
   addr_t phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
-  
   MEMPHY_write(krnl->mram, phyaddr, value);
-
   return 0;
 }
 
@@ -784,19 +802,14 @@ int __write_user_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, B
  */
 int free_pcb_memph(struct pcb_t *caller)
 {
-  pthread_mutex_lock(&mmvm_lock);
-  
+ pthread_mutex_lock(&mmvm_lock);
   addr_t pagenum, fpn;
   
-#ifdef MM64
-  uint64_t pte;
-#else
-  uint32_t pte;
-#endif
+  uint32_t pte; 
 
   for (pagenum = 0; pagenum < PAGING_MAX_PGN; pagenum++)
   {
-    pte = caller->krnl->mm->pgd[pagenum];
+    pte = pte_get_entry(caller, pagenum);
 
     if (pte == 0) continue; 
 
@@ -808,14 +821,12 @@ int free_pcb_memph(struct pcb_t *caller)
     else
     {
       fpn = PAGING_SWP(pte);
-      /* Secondary check to ensure we only free valid swap frames */
       if (fpn != 0) { 
         MEMPHY_put_freefp(caller->krnl->active_mswp, fpn);
       }
     }
     
-    /* Clear the dictionary entry so it cannot be double-freed */
-    caller->krnl->mm->pgd[pagenum] = 0;
+    pte_set_entry(caller, pagenum, 0);
   }
 
   pthread_mutex_unlock(&mmvm_lock);

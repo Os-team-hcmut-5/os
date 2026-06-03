@@ -114,7 +114,7 @@ static void * ld_routine(void * args) {
 	struct timer_id_t * timer_id = (struct timer_id_t*)args;
 #endif
 	int i = 0;
-  /* TODO init kernel page table directory */
+  /* init kernel page table directory */
 #ifdef MM64
 	os.krnl_pgd = malloc(PAGING64_MAX_PGN * sizeof(addr_t));
 	os.krnl_p4d = malloc(PAGING64_MAX_PGN * sizeof(addr_t));
