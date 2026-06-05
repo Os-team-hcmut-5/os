@@ -46,24 +46,24 @@ void init_scheduler(void)
 
 #ifdef MLQ_SCHED
 
-/* Helper: Kiểm tra xem tất cả các queue có process đều đã cạn slot chưa */
-static int all_slots_empty(void) {
-    int i;
-    for (i = 0; i < MAX_PRIO; i++) {
-        if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
-            return 0; /* Vẫn còn queue có process và còn slot */
-        }
-    }
-    return 1;
-}
+// /* Helper: Kiểm tra xem tất cả các queue có process đều đã cạn slot chưa */
+// static int all_slots_empty(void) {
+//     int i;
+//     for (i = 0; i < MAX_PRIO; i++) {
+//         if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
+//             return 0; /* Vẫn còn queue có process và còn slot */
+//         }
+//     }
+//     return 1;
+// }
 
-/* Helper: Reset lại slot cho tất cả các level */
-static void reset_slot(void) {
-    int i;
-    for (i = 0; i < MAX_PRIO; i++) {
-        slot[i] = MAX_PRIO - i;
-    }
-}
+// /* Helper: Reset lại slot cho tất cả các level */
+// static void reset_slot(void) {
+//     int i;
+//     for (i = 0; i < MAX_PRIO; i++) {
+//         slot[i] = MAX_PRIO - i;
+//     }
+// }
 
 /*
  * Stateful design for routine calling
