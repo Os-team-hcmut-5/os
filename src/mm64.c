@@ -107,7 +107,7 @@ int get_pd_from_pagenum(addr_t pgn, addr_t* pgd, addr_t* p4d, addr_t* pud, addr_
  */
 int pte_set_swap(struct pcb_t *caller, addr_t pgn, int swptyp, addr_t swpoff)
 {
-  addr_t *pte = &caller->krnl->mm->pt[pgn];
+  addr_t *pte = &caller->krnl->mm->pt[pgn % PAGING64_MAX_PGN];
   SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
   SETBIT(*pte, PAGING_PTE_SWAPPED_MASK);
   SETVAL(*pte, swptyp, PAGING_PTE_SWPTYP_MASK, PAGING_PTE_SWPTYP_LOBIT);
@@ -122,7 +122,7 @@ int pte_set_swap(struct pcb_t *caller, addr_t pgn, int swptyp, addr_t swpoff)
  */
 int pte_set_fpn(struct pcb_t *caller, addr_t pgn, addr_t fpn)
 {
-  addr_t *pte = &caller->krnl->mm->pt[pgn];
+  addr_t *pte = &caller->krnl->mm->pt[pgn % PAGING64_MAX_PGN];
   SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
   CLRBIT(*pte, PAGING_PTE_SWAPPED_MASK);
   SETVAL(*pte, fpn, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT);
@@ -137,7 +137,7 @@ int pte_set_fpn(struct pcb_t *caller, addr_t pgn, addr_t fpn)
  **/
 uint32_t pte_get_entry(struct pcb_t *caller, addr_t pgn)
 {
-  return (uint32_t)caller->krnl->mm->pt[pgn];
+  return (uint32_t)caller->krnl->mm->pt[pgn % PAGING64_MAX_PGN];
 }
 
 /* Set PTE page table entry
@@ -147,7 +147,7 @@ uint32_t pte_get_entry(struct pcb_t *caller, addr_t pgn)
  **/
 int pte_set_entry(struct pcb_t *caller, addr_t pgn, uint32_t pte_val)
 {
-  caller->krnl->mm->pt[pgn] = pte_val;
+  caller->krnl->mm->pt[pgn % PAGING64_MAX_PGN] = pte_val;
   return 0;
 }
 
