@@ -17,8 +17,8 @@ echo "====================================="
 echo " Running Scheduling Tests...         "
 echo "====================================="
 
-# echo "Running sched..."
-# ./os sched > output/sched.output
+echo "Running sched..."
+./os sched > output/sched.output
 
 echo "Running sched_0..."
 ./os sched_0 > output/sched_0.output

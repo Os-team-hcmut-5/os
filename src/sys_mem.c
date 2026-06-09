@@ -30,6 +30,7 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
    struct pcb_t *caller = NULL;
    struct queue_t *running_list = krnl->running_list;
    
+   /* Attempt to locate the caller */
    if (running_list != NULL) {
         for (int i = 0; i < running_list->size; i++) {
            if (running_list->proc[i] != NULL && running_list->proc[i]->pid == pid) {
@@ -43,11 +44,10 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
         printf("Error: Process with PID %d not found\n", pid);
         return -1;
    }
-	
+    
    switch (memop) {
    case SYSMEM_MAP_OP:
-            /* Reserved process case*/
-			vmap_pgd_memset(caller, regs->a2, regs->a3);
+            vmap_pgd_memset(caller, regs->a2, regs->a3);
             break;
    case SYSMEM_INC_OP:
             inc_vma_limit(caller, regs->a2, regs->a3);
@@ -55,18 +55,19 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
    case SYSMEM_SWP_OP:
             if (regs->a4 == 1) {
                 /* Swap IN (Disk -> RAM) */
-                __swap_cp_page(caller->krnl->active_mswp, regs->a2, caller->krnl->mram, regs->a3);
+                __swap_cp_page(krnl->active_mswp, regs->a2, krnl->mram, regs->a3);
             } else {
                 /* Swap OUT (RAM -> Disk) */
-                __mm_swap_page(caller, regs->a2, regs->a3);
+                __swap_cp_page(krnl->mram, regs->a2, krnl->active_mswp, regs->a3);
             }
             break;
    case SYSMEM_IO_READ:
-            MEMPHY_read(caller->krnl->mram, regs->a2, &value);
+            MEMPHY_read(krnl->mram, regs->a2, &value);
             regs->a3 = value;
             break;
    case SYSMEM_IO_WRITE:
-            MEMPHY_write(caller->krnl->mram, regs->a2, regs->a3);
+            /* FIXED: Bypass 'caller' and use the safe krnl pointer */
+            MEMPHY_write(krnl->mram, regs->a2, regs->a3);
             break;
    default:
             printf("Memop code: %d\n", memop);
@@ -75,4 +76,5 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
    
    return 0;
 }
+
 
