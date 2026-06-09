@@ -11,7 +11,8 @@
 #include "common.h"
 
 
-struct sc_regs {
+struct sc_regs 
+{
         arg_t a1;
         arg_t a2;
         arg_t a3;
@@ -20,11 +21,11 @@ struct sc_regs {
         arg_t a6;
 
         /*
-         * orig_ax is used on entry for:
-         * - the syscall number (syscall, sysenter, int80)
-         * - error_code stored by the CPU on traps and exceptions
-         * - the interrupt number for device interrupts
-         */
+                * orig_ax is used on entry for:
+                * - the syscall number (syscall, sysenter, int80)
+                * - error_code stored by the CPU on traps and exceptions
+                * - the interrupt number for device interrupts
+                */
         uint32_t orig_ax;
 
         int32_t flags;
