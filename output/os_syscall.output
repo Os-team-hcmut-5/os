@@ -2,25 +2,28 @@ Time slot   0
 ld_routine
 Time slot   1
 	Loaded a process at input/proc/sc2, PID: 1 PRIO: 15
-	CPU 0: Dispatched process  1
-liballoc:185
-print_pgtbl:
- PGD=7f197c0075f0 P4D=7f1980000bd0 PUD=7f1980001be0 PMD=7f1980002bf0
 Time slot   2
+	CPU 0: Dispatched process  1
+liballoc:184
 print_pgtbl:
- PGD=7f197c0075f0 P4D=7f1980000bd0 PUD=7f1980001be0 PMD=7f1980002bf0
+ PGD=7fe86c007600 P4D=7fe870000bd0 PUD=7fe870001be0 PMD=7fe870002bf0
 Time slot   3
-	CPU 0: Put process  1 to run queue
-	CPU 0: Dispatched process  1
+libwrite: PID 1 writing value 80 to offset 0
 print_pgtbl:
- PGD=7f197c0075f0 P4D=7f1980000bd0 PUD=7f1980001be0 PMD=7f1980002bf0
+ PGD=7fe86c007600 P4D=7fe870000bd0 PUD=7fe870001be0 PMD=7fe870002bf0
 Time slot   4
-print_pgtbl:
- PGD=7f197c0075f0 P4D=7f1980000bd0 PUD=7f1980001be0 PMD=7f1980002bf0
-Time slot   5
 	CPU 0: Put process  1 to run queue
 	CPU 0: Dispatched process  1
+libwrite: PID 1 writing value 48 to offset 1
+print_pgtbl:
+ PGD=7fe86c007600 P4D=7fe870000bd0 PUD=7fe870001be0 PMD=7fe870002bf0
+Time slot   5
+libwrite: PID 1 writing value -1 to offset 2
+print_pgtbl:
+ PGD=7fe86c007600 P4D=7fe870000bd0 PUD=7fe870001be0 PMD=7fe870002bf0
 Time slot   6
+	CPU 0: Put process  1 to run queue
+	CPU 0: Dispatched process  1
+Time slot   7
 	CPU 0: Processed  1 has finished
 	CPU 0 stopped
-Time slot   7

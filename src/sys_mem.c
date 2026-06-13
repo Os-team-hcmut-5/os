@@ -66,7 +66,6 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
             regs->a3 = value;
             break;
    case SYSMEM_IO_WRITE:
-            /* FIXED: Bypass 'caller' and use the safe krnl pointer */
             MEMPHY_write(krnl->mram, regs->a2, regs->a3);
             break;
    default:

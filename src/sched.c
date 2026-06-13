@@ -79,7 +79,7 @@ struct pcb_t * get_mlq_proc(void) {
     uint32_t prio;
     int found = 0;
 
-    // Bước 1: Tìm tiến trình ở hàng đợi CÓ THỂ CHẠY (không rỗng VÀ vẫn còn slot)
+    // Tìm tiến trình ở hàng đợi CÓ THỂ CHẠY (không rỗng VÀ vẫn còn slot)
     for (prio = 0; prio < MAX_PRIO; ++prio) {
         if (!empty(&mlq_ready_queue[prio]) && slot[prio] > 0) {
             proc = dequeue(&mlq_ready_queue[prio]);
@@ -89,7 +89,7 @@ struct pcb_t * get_mlq_proc(void) {
         }
     }
 
-    // Bước 2: Nếu không tìm thấy tiến trình nào do TẤT CẢ các hàng đợi đều hết slot,
+    // Nếu không tìm thấy tiến trình nào do TẤT CẢ các hàng đợi đều hết slot,
     // nhưng vẫn CÒN tiến trình đang chờ -> Cấp lại slot cho vòng mới (reset epoch)
     if (!found) {
         int has_process = 0;
